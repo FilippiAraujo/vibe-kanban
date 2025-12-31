@@ -243,6 +243,7 @@ pub async fn create_task_and_start(
         has_in_progress_attempt: is_attempt_running,
         last_attempt_failed: false,
         executor: payload.executor_profile_id.executor.to_string(),
+        feature_name: None,
     })))
 }
 
@@ -265,6 +266,7 @@ pub async fn update_task(
     let parent_workspace_id = payload
         .parent_workspace_id
         .or(existing_task.parent_workspace_id);
+    let feature_id = payload.feature_id.unwrap_or(existing_task.feature_id);
 
     let task = Task::update(
         &deployment.db().pool,
@@ -274,6 +276,7 @@ pub async fn update_task(
         description,
         status,
         parent_workspace_id,
+        feature_id,
     )
     .await?;
 

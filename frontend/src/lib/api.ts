@@ -15,6 +15,9 @@ import {
   DirectoryEntry,
   ExecutionProcess,
   ExecutionProcessRepoState,
+  Feature,
+  CreateFeature,
+  UpdateFeature,
   GitBranch,
   Project,
   ProjectRepo,
@@ -890,6 +893,36 @@ export const tagsApi = {
 
   delete: async (tagId: string): Promise<void> => {
     const response = await makeRequest(`/api/tags/${tagId}`, {
+      method: 'DELETE',
+    });
+    return handleApiResponse<void>(response);
+  },
+};
+
+export const featuresApi = {
+  list: async (projectId: string): Promise<Feature[]> => {
+    const response = await makeRequest(`/api/features?project_id=${projectId}`);
+    return handleApiResponse<Feature[]>(response);
+  },
+
+  create: async (data: CreateFeature): Promise<Feature> => {
+    const response = await makeRequest('/api/features', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<Feature>(response);
+  },
+
+  update: async (featureId: string, data: UpdateFeature): Promise<Feature> => {
+    const response = await makeRequest(`/api/features/${featureId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<Feature>(response);
+  },
+
+  delete: async (featureId: string): Promise<void> => {
+    const response = await makeRequest(`/api/features/${featureId}`, {
       method: 'DELETE',
     });
     return handleApiResponse<void>(response);

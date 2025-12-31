@@ -4,6 +4,7 @@ import { Link, Loader2, XCircle } from 'lucide-react';
 import type { TaskWithAttemptStatus } from 'shared/types';
 import { ActionsDropdown } from '@/components/ui/actions-dropdown';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useNavigateWithSearch } from '@/hooks';
 import { paths } from '@/lib/paths';
 import { attemptsApi } from '@/lib/api';
@@ -138,6 +139,13 @@ export function TaskCard({
               ? `${task.description.substring(0, 130)}...`
               : task.description}
           </p>
+        )}
+        {task.feature_name && (
+          <div className="mt-1">
+            <Badge variant="outline" className="text-xs">
+              {task.feature_name}
+            </Badge>
+          </div>
         )}
       </div>
     </KanbanCard>

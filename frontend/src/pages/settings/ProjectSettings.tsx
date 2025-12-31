@@ -29,6 +29,7 @@ import { useScriptPlaceholders } from '@/hooks/useScriptPlaceholders';
 import { CopyFilesField } from '@/components/projects/CopyFilesField';
 import { AutoExpandingTextarea } from '@/components/ui/auto-expanding-textarea';
 import { RepoPickerDialog } from '@/components/dialogs/shared/RepoPickerDialog';
+import { FeatureManager } from '@/components/FeatureManager';
 import { projectsApi } from '@/lib/api';
 import { repoBranchKeys } from '@/hooks/useRepoBranches';
 import type { Project, ProjectRepo, Repo, UpdateProject } from 'shared/types';
@@ -749,6 +750,21 @@ export function ProjectSettings() {
                     Add Repository
                   </Button>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Features Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Features</CardTitle>
+              <CardDescription>
+                Organize your tasks by grouping them into features
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {selectedProjectId && (
+                <FeatureManager projectId={selectedProjectId} />
               )}
             </CardContent>
           </Card>

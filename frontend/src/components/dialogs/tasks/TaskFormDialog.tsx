@@ -28,6 +28,7 @@ import WYSIWYGEditor from '@/components/ui/wysiwyg';
 import type { LocalImageMetadata } from '@/components/ui/wysiwyg/context/task-attempt-context';
 import BranchSelector from '@/components/tasks/BranchSelector';
 import RepoBranchSelector from '@/components/tasks/RepoBranchSelector';
+import { FeatureSelector } from '@/components/tasks/FeatureSelector';
 import { ExecutorProfileSelector } from '@/components/settings';
 import { useUserSystem } from '@/components/ConfigProvider';
 import {
@@ -45,10 +46,12 @@ import {
 } from '@/keyboard';
 import { useHotkeysContext } from 'react-hotkeys-hook';
 import { cn } from '@/lib/utils';
+import { featuresApi } from '@/lib/api';
 import type {
   TaskStatus,
   ExecutorProfileId,
   ImageResponse,
+  Feature,
 } from 'shared/types';
 
 interface Task {
@@ -59,6 +62,7 @@ interface Task {
   status: TaskStatus;
   created_at: string;
   updated_at: string;
+  feature_id: string | null;
 }
 
 export type TaskFormDialogProps =
@@ -81,6 +85,7 @@ type TaskFormValues = {
   executorProfileId: ExecutorProfileId | null;
   repoBranches: RepoBranch[];
   autoStart: boolean;
+  featureId: string | null;
 };
 
 const TaskFormDialogImpl = NiceModal.create<TaskFormDialogProps>((props) => {
@@ -101,6 +106,7 @@ const TaskFormDialogImpl = NiceModal.create<TaskFormDialogProps>((props) => {
   );
   const [showDiscardWarning, setShowDiscardWarning] = useState(false);
   const forceCreateOnlyRef = useRef(false);
+  const [projectFeatures, setProjectFeatures] = useState<Feature[]>([]);
 
   const { data: taskImages } = useTaskImages(
     editMode ? props.task.id : undefined
@@ -136,6 +142,7 @@ const TaskFormDialogImpl = NiceModal.create<TaskFormDialogProps>((props) => {
           executorProfileId: baseProfile,
           repoBranches: defaultRepoBranches,
           autoStart: false,
+          featureId: props.task.feature_id ?? null,
         };
 
       case 'duplicate':
@@ -146,6 +153,7 @@ const TaskFormDialogImpl = NiceModal.create<TaskFormDialogProps>((props) => {
           executorProfileId: baseProfile,
           repoBranches: defaultRepoBranches,
           autoStart: true,
+          featureId: props.initialTask.feature_id ?? null,
         };
 
       case 'subtask':
@@ -158,6 +166,7 @@ const TaskFormDialogImpl = NiceModal.create<TaskFormDialogProps>((props) => {
           executorProfileId: baseProfile,
           repoBranches: defaultRepoBranches,
           autoStart: true,
+          featureId: null,
         };
     }
   }, [mode, props, system.config?.executor_profile, defaultRepoBranches]);
@@ -174,6 +183,7 @@ const TaskFormDialogImpl = NiceModal.create<TaskFormDialogProps>((props) => {
             status: value.status,
             parent_workspace_id: null,
             image_ids: images.length > 0 ? images.map((img) => img.id) : null,
+            feature_id: value.featureId,
           },
         },
         { onSuccess: () => modal.remove() }
@@ -190,6 +200,7 @@ const TaskFormDialogImpl = NiceModal.create<TaskFormDialogProps>((props) => {
           mode === 'subtask' ? props.parentTaskAttemptId : null,
         image_ids: imageIds,
         shared_task_id: null,
+        feature_id: value.featureId,
       };
       const shouldAutoStart = value.autoStart && !forceCreateOnlyRef.current;
       if (shouldAutoStart) {
@@ -245,6 +256,14 @@ const TaskFormDialogImpl = NiceModal.create<TaskFormDialogProps>((props) => {
     if (!taskImages) return;
     setImages(taskImages);
   }, [taskImages]);
+
+  // Load features for the project
+  useEffect(() => {
+    if (!projectId) return;
+    featuresApi.list(projectId).then(setProjectFeatures).catch(() => {
+      // Silently ignore errors loading features
+    });
+  }, [projectId]);
 
   const onDrop = useCallback(
     async (files: File[]) => {
@@ -434,6 +453,25 @@ const TaskFormDialogImpl = NiceModal.create<TaskFormDialogProps>((props) => {
                   className="text-lg font-semibold placeholder:text-muted-foreground/60 border-none p-0"
                   disabled={isSubmitting}
                   autoFocus
+                />
+              )}
+            </form.Field>
+          </div>
+
+          {/* Feature */}
+          <div className="flex-none px-4 py-2">
+            <form.Field name="featureId">
+              {(field) => (
+                <FeatureSelector
+                  features={projectFeatures}
+                  selectedFeatureId={field.state.value}
+                  onFeatureSelect={(id) => field.handleChange(id)}
+                  projectId={projectId}
+                  onFeaturesChange={() => {
+                    featuresApi.list(projectId).then(setProjectFeatures).catch(() => {});
+                  }}
+                  disabled={isSubmitting}
+                  showLabel={true}
                 />
               )}
             </form.Field>

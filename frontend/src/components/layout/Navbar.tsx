@@ -1,7 +1,14 @@
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { siDiscord } from 'simple-icons';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +46,8 @@ import {
 } from '@/components/ui/tooltip';
 import { OAuthDialog } from '@/components/dialogs/global/OAuthDialog';
 import { useUserSystem } from '@/components/ConfigProvider';
-import { oauthApi } from '@/lib/api';
+import { oauthApi, featuresApi } from '@/lib/api';
+import type { Feature } from 'shared/types';
 
 const INTERNAL_NAV = [{ label: 'Projects', icon: FolderOpen, to: '/projects' }];
 
@@ -83,6 +91,20 @@ export function Navbar() {
   const { data: repos } = useProjectRepos(projectId);
   const isSingleRepoProject = repos?.length === 1;
 
+  const [projectFeatures, setProjectFeatures] = useState<Feature[]>([]);
+  const featureFilter = searchParams.get('feature');
+
+  // Load features for the project
+  useEffect(() => {
+    if (!projectId) {
+      setProjectFeatures([]);
+      return;
+    }
+    featuresApi.list(projectId).then(setProjectFeatures).catch(() => {
+      setProjectFeatures([]);
+    });
+  }, [projectId]);
+
   const setSearchBarRef = useCallback(
     (node: HTMLInputElement | null) => {
       registerInputRef(node);
@@ -103,6 +125,19 @@ export function Navbar() {
         params.delete('shared');
       } else {
         params.set('shared', 'off');
+      }
+      setSearchParams(params, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const handleFeatureFilter = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParams);
+      if (value === 'all') {
+        params.delete('feature');
+      } else {
+        params.set('feature', value);
       }
       setSearchParams(params, { replace: true });
     },
@@ -171,6 +206,26 @@ export function Navbar() {
                   : 'online'}
               </span>
             </a>
+
+            {isTasksRoute && projectFeatures.length > 0 && (
+              <Select
+                value={featureFilter || 'all'}
+                onValueChange={handleFeatureFilter}
+              >
+                <SelectTrigger className="hidden sm:inline-flex ml-3 h-6 text-xs border w-auto min-w-[140px]">
+                  <SelectValue placeholder="All Features" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Features</SelectItem>
+                  <SelectItem value="none">No Feature</SelectItem>
+                  {projectFeatures.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="hidden sm:flex items-center gap-2">

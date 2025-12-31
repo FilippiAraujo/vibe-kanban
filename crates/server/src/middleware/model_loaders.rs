@@ -5,8 +5,8 @@ use axum::{
     response::Response,
 };
 use db::models::{
-    execution_process::ExecutionProcess, project::Project, session::Session, tag::Tag, task::Task,
-    workspace::Workspace,
+    execution_process::ExecutionProcess, feature::Feature, project::Project, session::Session,
+    tag::Tag, task::Task, workspace::Workspace,
 };
 use deployment::Deployment;
 use uuid::Uuid;
@@ -167,5 +167,32 @@ pub async fn load_session_middleware(
     };
 
     request.extensions_mut().insert(session);
+    Ok(next.run(request).await)
+}
+
+pub async fn load_feature_middleware(
+    State(deployment): State<DeploymentImpl>,
+    Path(feature_id): Path<Uuid>,
+    request: axum::extract::Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    // Load the feature from the database
+    let feature = match Feature::find_by_id(&deployment.db().pool, feature_id).await {
+        Ok(Some(feature)) => feature,
+        Ok(None) => {
+            tracing::warn!("Feature {} not found", feature_id);
+            return Err(StatusCode::NOT_FOUND);
+        }
+        Err(e) => {
+            tracing::error!("Failed to fetch feature {}: {}", feature_id, e);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    // Insert the feature as an extension
+    let mut request = request;
+    request.extensions_mut().insert(feature);
+
+    // Continue with the next middleware/handler
     Ok(next.run(request).await)
 }

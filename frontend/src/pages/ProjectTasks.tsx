@@ -144,6 +144,7 @@ export function ProjectTasks() {
     string | null
   >(null);
   const { userId } = useAuth();
+  const featureFilter = searchParams.get('feature');
 
   const {
     projectId,
@@ -380,6 +381,12 @@ export function ProjectTasks() {
       );
     };
 
+    const matchesFeatureFilter = (task: Task): boolean => {
+      if (!featureFilter) return true;
+      if (featureFilter === 'none') return !task.feature_id;
+      return task.feature_id === featureFilter;
+    };
+
     tasks.forEach((task) => {
       const statusKey = normalizeStatus(task.status);
       const sharedTask = task.shared_task_id
@@ -387,6 +394,10 @@ export function ProjectTasks() {
         : sharedTasksById[task.id];
 
       if (!matchesSearch(task.title, task.description)) {
+        return;
+      }
+
+      if (!matchesFeatureFilter(task)) {
         return;
       }
 
@@ -448,6 +459,7 @@ export function ProjectTasks() {
     sharedTasksById,
     showSharedTasks,
     userId,
+    featureFilter,
   ]);
 
   const visibleTasksByStatus = useMemo(() => {
@@ -763,6 +775,7 @@ export function ProjectTasks() {
           status: newStatus,
           parent_workspace_id: task.parent_workspace_id,
           image_ids: null,
+          feature_id: task.feature_id,
         });
       } catch (err) {
         console.error('Failed to update task status:', err);
@@ -845,6 +858,10 @@ export function ProjectTasks() {
             <p className="text-muted-foreground">
               {t('empty.noSearchResults')}
             </p>
+            <Button className="mt-4" onClick={handleCreateNewTask}>
+              <Plus className="h-4 w-4 mr-2" />
+              {t('empty.createFirst')}
+            </Button>
           </CardContent>
         </Card>
       </div>
